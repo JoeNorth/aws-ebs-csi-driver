@@ -23,9 +23,20 @@ function loudecho() {
 }
 
 function install_driver() {
+  if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${REGISTRY_PASSWORD:-}" ]; then
+    loudecho "Creating image pull secret ${IMAGE_PULL_SECRET_NAME} in kube-system"
+    kubectl create secret docker-registry "${IMAGE_PULL_SECRET_NAME}" \
+      --docker-server="${REGISTRY_SERVER}" \
+      --docker-username="${REGISTRY_USERNAME}" \
+      --docker-password="${REGISTRY_PASSWORD}" \
+      --namespace kube-system \
+      --kubeconfig "${KUBECONFIG}" \
+      --dry-run=client -o yaml | kubectl apply --kubeconfig "${KUBECONFIG}" -f -
+  fi
+
   if [[ ${DEPLOY_METHOD} == "helm" ]]; then
     HELM_ARGS=(upgrade --install aws-ebs-csi-driver
-      "${BASE_DIR}/../../charts/aws-ebs-csi-driver"
+      "${HELM_CHART_REPOSITORY}"
       --namespace kube-system
       --set node.enableWindows="${WINDOWS}"
       --set node.windowsHostProcess="${WINDOWS_HOSTPROCESS}"
@@ -34,6 +45,9 @@ function install_driver() {
       --timeout 10m0s
       --wait
       --kubeconfig "${KUBECONFIG}")
+    if [ -n "${HELM_CHART_TAG:-}" ]; then
+      HELM_ARGS+=(--version "${HELM_CHART_TAG}")
+    fi
     if [ -n "${HELM_VALUES_FILE:-}" ]; then
       HELM_ARGS+=(-f "${HELM_VALUES_FILE}")
     fi
