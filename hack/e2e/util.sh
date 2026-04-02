@@ -55,9 +55,9 @@ function install_driver() {
       HELM_ARGS+=(--set image.repository="${IMAGE_NAME}")
       HELM_ARGS+=(--set image.tag="${IMAGE_TAG}")
     fi
-    eval "EXPANDED_HELM_EXTRA_FLAGS=$HELM_EXTRA_FLAGS"
-    if [[ -n "$EXPANDED_HELM_EXTRA_FLAGS" ]]; then
-      HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS}")
+    eval "EXPANDED_HELM_EXTRA_FLAGS=(${HELM_EXTRA_FLAGS})"
+    if [[ -n "${EXPANDED_HELM_EXTRA_FLAGS[*]}" ]]; then
+      HELM_ARGS+=("${EXPANDED_HELM_EXTRA_FLAGS[@]}")
     fi
     set -x
     "${BIN}/helm" "${HELM_ARGS[@]}"
