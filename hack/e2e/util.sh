@@ -24,6 +24,10 @@ function loudecho() {
 
 function install_driver() {
   if [ -n "${REGISTRY_SERVER:-}" ] && [ -n "${REGISTRY_USERNAME:-}" ] && [ -n "${REGISTRY_PASSWORD:-}" ]; then
+    loudecho "Logging into OCI registry ${REGISTRY_SERVER}"
+    echo "${REGISTRY_PASSWORD}" | "${BIN}/helm" registry login "${REGISTRY_SERVER}" \
+      --username "${REGISTRY_USERNAME}" --password-stdin
+
     loudecho "Creating image pull secret ${IMAGE_PULL_SECRET_NAME} in kube-system"
     kubectl create secret docker-registry "${IMAGE_PULL_SECRET_NAME}" \
       --docker-server="${REGISTRY_SERVER}" \
@@ -75,5 +79,13 @@ function uninstall_driver() {
     ${BIN}/helm uninstall "aws-ebs-csi-driver" --namespace kube-system --kubeconfig "${KUBECONFIG}"
   elif [[ ${DEPLOY_METHOD} == "kustomize" ]]; then
     kubectl --kubeconfig "${KUBECONFIG}" delete -k "${BASE_DIR}/../../deploy/kubernetes/overlays/stable"
+  fi
+
+  if [ -n "${REGISTRY_SERVER:-}" ]; then
+    loudecho "Removing imagePullSecret ${IMAGE_PULL_SECRET_NAME}"
+    kubectl delete secret "${IMAGE_PULL_SECRET_NAME}" \
+      --namespace kube-system \
+      --kubeconfig "${KUBECONFIG}" \
+      --ignore-not-found
   fi
 }
